@@ -34,21 +34,36 @@ def calculate_path_length(path):
     return length
 
 def get_valid_neighbors(grid, curr_node):
-    # 4 step movement
-    x = curr_node[0]
-    y = curr_node[1]
-    
-    next_steps = [
-    (x+1, y), (x-1, y), (x, y+1), (x, y-1),(x+1, y+1), (x-1, y-1), (x+1, y-1), (x-1, y+1)]
-    
+    x, y = curr_node
+    directions = [
+        (1, 0), (-1, 0), (0, 1), (0, -1),
+        (1, 1), (-1, -1), (1, -1), (-1, 1)
+    ]
+
     valid_neighbors = []
-    for step in next_steps:
-        if 0 <= step[0] < len(grid) and 0 <= step[1] < len(grid[0]):
-            if grid[step[0]][step[1]] == False:
-                valid_neighbors.append(step)
+
+    for dx, dy in directions:
+        nx, ny = x + dx, y + dy
+        if 0 <= nx < len(grid) and 0 <= ny < len(grid[0]):
+            if not grid[nx][ny]:
+                if abs(dx) + abs(dy) == 2:
+                    if grid[x][ny] or grid[nx][y]:
+                        continue
+                valid_neighbors.append((nx, ny))
+
     return valid_neighbors
 
+
 def bfs(grid, start, goal):
+    """
+    Breadth-First Search (BFS) algorithm for pathfinding.
+    Args:
+        grid (list): 2D list representing the grid (True for obstacles, False for free space).
+        start (tuple): Starting point (x, y).
+        goal (tuple): Goal point (x, y).
+    Returns:
+        list: List of tuples representing the path from start to goal, or None if no path is found.
+    """
     if grid[goal[0]][goal[1]] == True or grid[start[0]][start[1]] == True:
         return None
     visited = [[False] * len(grid[0]) for _ in range(len(grid))]
@@ -79,6 +94,15 @@ def bfs(grid, start, goal):
 
 
 def dijkstra(grid, start, goal):
+    """
+    Dijkstra's algorithm for pathfinding.
+    Args:
+        grid (list): 2D list representing the grid (True for obstacles, False for free space).
+        start (tuple): Starting point (x, y).
+        goal (tuple): Goal point (x, y).
+    Returns:
+        list: List of tuples representing the path from start to goal, or None if no path is found.
+    """
     if grid[goal[0]][goal[1]] == True or grid[start[0]][start[1]] == True:
         return None
     visited = [[False] * len(grid[0]) for _ in range(len(grid))]
@@ -118,78 +142,55 @@ def dijkstra(grid, start, goal):
     
     return None
 
-def rrt(grid, start, goal, max_iters=5000, step_size=1):
+def rrt(grid, start, goal, max_iters=5000):
+    """
+    Rapidly-exploring Random Tree (RRT) path planning algorithm.
+    Args:
+        grid (list): 2D list representing the grid (True for obstacles, False for free space).
+        start (tuple): Starting point (x, y).
+        goal (tuple): Goal point (x, y).
+        max_iters (int): Maximum iterations for RRT.
+    Returns:
+        list: List of tuples representing the path from start to goal, or None if no path is found.
+    """
     if grid[goal[0]][goal[1]] or grid[start[0]][start[1]]:
         return None
 
     def is_free(p):
+        """Check if a point is within the grid and not an obstacle."""
         x, y = p
         return 0 <= x < len(grid) and 0 <= y < len(grid[0]) and not grid[x][y]
 
     def distance(p1, p2):
+        """Calculate Euclidean distance between two points."""
         return math.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
 
-    def steer(from_node, to_node):
-        vec = (to_node[0] - from_node[0], to_node[1] - from_node[1])
-        dist = math.hypot(*vec)
-        if dist <= step_size:
-            return to_node
-        else:
-            scale = step_size / dist
-            new_point = (int(round(from_node[0] + vec[0] * scale)),
-                         int(round(from_node[1] + vec[1] * scale)))
-            return new_point
-
-    def collision_free(p1, p2):
-        # Bresenham’s Line Algorithm for grid collision checking
-        x0, y0 = p1
-        x1, y1 = p2
-        dx = abs(x1 - x0)
-        dy = abs(y1 - y0)
-        x, y = x0, y0
-        sx = -1 if x0 > x1 else 1
-        sy = -1 if y0 > y1 else 1
-        if dx > dy:
-            err = dx / 2.0
-            while x != x1:
-                if not is_free((x, y)):
-                    return False
-                err -= dy
-                if err < 0:
-                    y += sy
-                    err += dx
-                x += sx
-        else:
-            err = dy / 2.0
-            while y != y1:
-                if not is_free((x, y)):
-                    return False
-                err -= dx
-                if err < 0:
-                    x += sx
-                    err += dy
-                y += sy
-        return is_free((x, y))
+    def get_best_neighbor(from_node, sample_point):
+        """Find the best neighbor of a node that is closest to the sample point."""
+        neighbors = get_valid_neighbors(grid, from_node)
+        if not neighbors:
+            return None
+        return min(neighbors, key=lambda n: distance(n, sample_point))
 
     tree = {tuple(start): None}
     nodes = [tuple(start)]
 
     for _ in range(max_iters):
         print("Iteration:", _, end="\r")
-        rand_point = (random.randint(0, len(grid)-1), random.randint(0, len(grid[0])-1))
+        rand_point = (random.randint(0, len(grid) - 1), random.randint(0, len(grid[0]) - 1))
         nearest = min(nodes, key=lambda n: distance(n, rand_point))
-        new_point = steer(nearest, rand_point)
-        if is_free(new_point) and collision_free(nearest, new_point):
-            if new_point not in tree:
-                tree[new_point] = nearest
-                nodes.append(new_point)
-                # if new_point == tuple(goal):
-                #     break
-                if distance(new_point, goal) <= step_size and collision_free(new_point, goal):
-                    tree[tuple(goal)] = nearest
-                    break
+        new_point = get_best_neighbor(nearest, rand_point)
 
-    # Trace path back from goal to start
+        if new_point and new_point not in tree:
+            tree[new_point] = nearest
+            nodes.append(new_point)
+
+            if distance(new_point, goal) <= 1.5 and is_free(goal):
+                if tuple(goal) not in tree:
+                    tree[tuple(goal)] = new_point
+                    nodes.append(goal)
+                break
+    
     if tuple(goal) in tree:
         path = []
         node = tuple(goal)
@@ -198,6 +199,7 @@ def rrt(grid, start, goal, max_iters=5000, step_size=1):
             node = tree[node]
         path.reverse()
         return path
+
     return None
 
 

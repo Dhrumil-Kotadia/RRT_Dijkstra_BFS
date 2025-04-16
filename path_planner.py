@@ -7,9 +7,9 @@ import tracemalloc
 
 if __name__ == "__main__":
     
-    grid_path = "/media/storage/lost+found/WPI/Sem4/Advanced_Nav/Project1/grid1.txt"
+    grid_path = "/media/storage/lost+found/WPI/Sem4/Advanced_Nav/Project1/grid3.txt"
     grid = utils.read_grid_from_file(grid_path)
-    start_goal_path = "/media/storage/lost+found/WPI/Sem4/Advanced_Nav/Project1/startgoal1.json"
+    start_goal_path = "/media/storage/lost+found/WPI/Sem4/Advanced_Nav/Project1/startgoal3.json"
 
     with open(start_goal_path, 'r') as file:
         start_goal = json.load(file)
@@ -39,7 +39,7 @@ if __name__ == "__main__":
             print("No path Found!!")
 
         fig = utils.plot_grid(grid, path, start, goal)
-        plt.savefig(f"bfs_grid_1_startgoalpair_{key}.png")
+        plt.savefig(f"bfs_grid_3_startgoalpair_{key}.png")
         plt.close(fig)
 
         ################ Dijkstra ################
@@ -59,13 +59,13 @@ if __name__ == "__main__":
             print("No path Found!!")
         print("-------------------------------------")
         fig = utils.plot_grid(grid, path, start, goal)
-        plt.savefig(f"dijkstra_grid_1_startgoalpair_{key}.png")
+        plt.savefig(f"dijkstra_grid_3_startgoalpair_{key}.png")
         plt.close(fig)
 
         ################## RRT ##################
         start_time = time()
         tracemalloc.start()
-        path = utils.rrt(grid, start, goal, max_iters=5000, step_size=1)
+        path = utils.rrt(grid, start, goal, max_iters=5000)
         current, peak = tracemalloc.get_traced_memory()
         tracemalloc.stop()
         end_time = time()
@@ -84,7 +84,7 @@ if __name__ == "__main__":
 
 
         fig = utils.plot_grid(grid, path, start, goal)
-        plt.savefig(f"rrt_grid_1_startgoalpair_{key}.png")
+        plt.savefig(f"rrt_grid_3_startgoalpair_{key}.png")
         plt.close(fig)
 
     
